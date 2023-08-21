@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  PipelineName:
+    Type: String
+
+Resources:
+
+  PipelineArtifactsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      # BucketName: baby-pipeline-artifacts-randomname-v2-1236789
+      BucketName: !Join ['-', [ !Ref PipelineName, 'artifacts', !Sub '${AWS::Region}']]
+      Tags: 
+        - Key: 'organization'
+          Value: 'joseDev'
+        - Key: 'cfn'
+          Value: 'pipeline'
+
+Outputs:
+  PipelineArtifactsBucket:
+    Value: !Ref PipelineArtifactsBucket
+    Export:
+      Name: PipelineArtifactsBucket        
+  PipelineArtifactsBucketArn:
+    Value: !GetAtt PipelineArtifactsBucket.Arn
+    Export:
+      Name: PipelineArtifactsBucketArn       

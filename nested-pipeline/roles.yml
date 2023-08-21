@@ -1,0 +1,231 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  PipelineName:
+    Type: String
+
+Resources:
+
+  KMSKey:
+    Type: "AWS::KMS::Key"
+    Properties:
+      Tags: 
+        - Key: 'organization'
+          Value: 'joseDev'
+        - Key: 'cfn'
+          Value: 'pipeline'
+      Enabled: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "Enable IAM User Permissions"
+            Effect: "Allow"
+            Principal:
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - "kms:*"
+            Resource: "*"
+          - Sid: "Allow access for Key Administrators"
+            Effect: "Allow"
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - "kms:Create*"
+              - "kms:Describe*"
+              - "kms:Enable*"
+              - "kms:List*"
+              - "kms:Put*"
+              - "kms:Update*"
+              - "kms:Revoke*"
+              - "kms:Disable*"
+              - "kms:Get*"
+              - "kms:Delete*"
+              - "kms:TagResource"
+              - "kms:UntagResource"
+              - "kms:ScheduleKeyDeletion"
+              - "kms:CancelKeyDeletion"
+            Resource: "*"
+
+  PipelineCodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Tags: 
+        - Key: 'organization'
+          Value: 'joseDev'
+        - Key: 'cfn'
+          Value: 'pipeline'
+      AssumeRolePolicyDocument: #JSON # Required
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Description: "Role to allow the build works"
+      Policies: 
+        - PolicyName: !Sub codebuild-${PipelineName}-policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:*
+                  - cloudformation:Describe*
+                  - cloudformation:Get*
+                  - cloudformation:List*
+                  - cloudformation:ValidateTemplate
+                  - cloudformation:ExecuteChangeSet
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*
+  
+  PipelineCodeDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Tags: 
+        - Key: 'organization'
+          Value: 'joseDev'
+        - Key: 'cfn'
+          Value: 'pipeline'
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codedeploy.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: codedeploy-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudwatch:*
+                  - lambda:UpdateAlias
+                  - lambda:GetAlias
+                  - lambda:GetProvisionedConcurrencyConfig
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                Resource: "arn:aws:s3:::*/CodeDeploy/*"
+              - Effect: Allow
+                Action:
+                  - s3:*
+                  - sqs:*
+                  - sns:*
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: "arn:aws:lambda:*:*:function:CodeDeployHook_*"
+
+  PipelineCodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Tags: 
+        - Key: 'organization'
+          Value: 'joseDev'
+        - Key: 'cfn'
+          Value: 'pipeline'
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: codepipeline-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:GetBucketVersioning
+                Resource:
+                  # - !Sub "arn:aws:s3:::${!ImportValue PipelineArtifactsBucket}/*" #TODO
+                  - !Join ['',["arn:aws:s3:::", !ImportValue PipelineArtifactsBucket, "/*"]] #TODO
+              - Effect: Allow
+                Action:
+                  - codebuild:BatchGetBuilds
+                  - codebuild:BatchGetProjects
+                  - codebuild:ListBuilds
+                  - codebuild:ListBuildsForProject
+                  - codebuild:ListConnectedOAuthAccounts
+                  - codebuild:ListProjects
+                  - codebuild:ListRepositories
+                  - codebuild:StartBuild
+                  - codebuild:StopBuild
+                  - sns:Publish
+                  - cloudwatch:*
+                  - lambda:InvokeFunction
+                  - lambda:ListFunctions
+                  - s3:*
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - cloudformation:DescribeStacks
+                  - iam:PassRole
+                  - cloudformation:CreateStack
+                  - cloudformation:UpdateStack
+                  - cloudformation:DeleteStack
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - kms:DescribeKey
+                  - kms:GenerateDataKey*
+                  - kms:Encrypt
+                  - kms:ReEncrypt*
+                  - kms:Decrypt
+                Resource:
+                  - !GetAtt KMSKey.Arn
+              - Effect: Allow
+                Action: 
+                  - codedeploy:*
+                Resource: "*"
+
+Outputs:
+  PipelineCodeBuildRole:
+    Value: !Ref PipelineCodeBuildRole
+    Export: 
+      Name: PipelineCodeBuildRole
+  PipelineCodeBuildRoleArn:
+    Value: !GetAtt PipelineCodeBuildRole.Arn
+    Export: 
+      Name: PipelineCodeBuildRoleArn
+  PipelineCodeDeployRole:
+    Value: !Ref PipelineCodeDeployRole
+    Export: 
+      Name: PipelineCodeDeployRole
+  PipelineCodeDeployRoleArn:
+    Value: !GetAtt PipelineCodeDeployRole.Arn
+    Export: 
+      Name: PipelineCodeDeployRoleArn
+  PipelineCodePipelineRole:
+    Value: !Ref PipelineCodePipelineRole
+    Export: 
+      Name: PipelineCodePipelineRole
+  PipelineCodePipelineRoleArn:
+    Value: !GetAtt PipelineCodePipelineRole.Arn
+    Export: 
+      Name: PipelineCodePipelineRoleArn

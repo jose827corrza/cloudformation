@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  PipelineName:
+    Description: Name for the new pipeline
+    Type: String
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: 'Name of the pipeline'
+        Parameters:
+          - PipelineName
+    ParameterLabels:
+      PipelineName:
+        default: 'Insert the name for the new Pipeline'
+Resources:
+  PipelineArtifactsBucket:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        PipelineName: !Ref PipelineName
+      TemplateURL: https://nested-pipeline.s3.amazonaws.com/templates/artifact-bucket.yml
+
+  PipelineRoleStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: PipelineArtifactsBucket
+    Properties:
+      Parameters:
+        PipelineName: !Ref PipelineName
+      TemplateURL: https://nested-pipeline.s3.amazonaws.com/templates/roles.yml # Required
+
