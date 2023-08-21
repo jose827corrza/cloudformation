@@ -1,0 +1,243 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Codepipeline pre requisites
+
+Resources:
+  KMSKey:
+    Type: "AWS::KMS::Key"
+    Properties:
+      Enabled: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "Enable IAM User Permissions"
+            Effect: "Allow"
+            Principal:
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - "kms:*"
+            Resource: "*"
+          - Sid: "Allow access for Key Administrators"
+            Effect: "Allow"
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - "kms:Create*"
+              - "kms:Describe*"
+              - "kms:Enable*"
+              - "kms:List*"
+              - "kms:Put*"
+              - "kms:Update*"
+              - "kms:Revoke*"
+              - "kms:Disable*"
+              - "kms:Get*"
+              - "kms:Delete*"
+              - "kms:TagResource"
+              - "kms:UntagResource"
+              - "kms:ScheduleKeyDeletion"
+              - "kms:CancelKeyDeletion"
+            Resource: "*"
+
+  StudentS3ArtifactsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub students-codepipeline-artifacts-${AWS::Region}
+
+  StudentS3ArtifactsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref StudentS3ArtifactsBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Id: SSEAndSSLPolicy
+        Statement:
+          - Sid: ""
+            Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt StudentCodeBuildRole.Arn
+                - !GetAtt StudentCodePipelineRole.Arn
+            Action:
+              - s3:Get*
+              - s3:Put*
+            Resource: !Sub "arn:aws:s3:::${StudentS3ArtifactsBucket}/*"
+
+  StudentCodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/service-role/"
+      Policies:
+        - PolicyName: codebuild-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeDhcpOptions
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                  - ec2:DescribeSubnets
+                  - ec2:DescribeSecurityGroups
+                  - ec2:DescribeVpcs
+                  - ec2:CreateNetworkInterfacePermission
+                  - lambda:*
+                  - cloudformation:Describe*
+                  - cloudformation:Get*
+                  - cloudformation:List*
+                  - cloudformation:ValidateTemplate
+                  - cloudformation:ExecuteChangeSet
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - s3:*
+                  - sqs:*
+                  - sns:*
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - kms:*
+                Resource:
+                  - !GetAtt KMSKey.Arn
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*
+
+  StudentCodeDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codedeploy.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: codedeploy-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudwatch:*
+                  - lambda:UpdateAlias
+                  - lambda:GetAlias
+                  - lambda:GetProvisionedConcurrencyConfig
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                Resource: "arn:aws:s3:::*/CodeDeploy/*"
+              - Effect: Allow
+                Action:
+                  - s3:*
+                  - sqs:*
+                  - sns:*
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: "arn:aws:lambda:*:*:function:CodeDeployHook_*"
+
+  StudentCodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: codepipeline-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:GetBucketVersioning
+                Resource:
+                  - !Sub "arn:aws:s3:::${StudentS3ArtifactsBucket}/*"
+              - Effect: Allow
+                Action:
+                  - codebuild:BatchGetBuilds
+                  - codebuild:BatchGetProjects
+                  - codebuild:ListBuilds
+                  - codebuild:ListBuildsForProject
+                  - codebuild:ListConnectedOAuthAccounts
+                  - codebuild:ListProjects
+                  - codebuild:ListRepositories
+                  - codebuild:StartBuild
+                  - codebuild:StopBuild
+                  - sns:Publish
+                  - cloudwatch:*
+                  - lambda:InvokeFunction
+                  - lambda:ListFunctions
+                  - s3:*
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - cloudformation:DescribeStacks
+                  - iam:PassRole
+                  - cloudformation:CreateStack
+                  - cloudformation:UpdateStack
+                  - cloudformation:DeleteStack
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - kms:DescribeKey
+                  - kms:GenerateDataKey*
+                  - kms:Encrypt
+                  - kms:ReEncrypt*
+                  - kms:Decrypt
+                Resource:
+                  - !GetAtt KMSKey.Arn
+              - Effect: Allow
+                Action: 
+                  - codedeploy:*
+                Resource: "*"
+
+  
+Outputs:
+  StudentPipelineRole:
+    Value: !GetAtt StudentCodePipelineRole.Arn
+    Export:
+      Name: PipelineRole
+  StudentCodeBuildRole:
+    Value: !GetAtt StudentCodeBuildRole.Arn
+    Export:
+      Name: StudentCodeBuildRole
+  StudentS3ArtifactsBucket:
+    Value: !Ref StudentS3ArtifactsBucket
+    Export:
+      Name: StudentS3ArtifactsBucket
+  StudentCodeDeployRole:
+    Value: !Ref StudentCodeDeployRole
+    Export:
+      Name: StudentCodeDeployRole
