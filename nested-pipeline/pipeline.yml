@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  AppName:
+    Type: String
+
+Resources:
+  AppPipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Location: !ImportValue AppArtifactsBucket
+        Type: 'S3'
+      Name: !Join ['-',[ !Ref AppName, !Sub '${AWS::Region}']]
+      RestartExecutionOnUpdate: false
+      RoleArn: !ImportValue AppCodePipelineRoleArn #"String" # Required
+      Stages: # Required
+        -
+          Name: 'Source'
+          Action:
+            -
+              Name: 'Source'
+              ActionTypeId:
+                Category: 'Source'
+                Owner: 'AWS'
+                Provider: 'CodeCommit'
+                Version: 1
+              NameSpace: 'SourceVariables'
+              Configuration:
+                RepositoryName: 'lambda-basic-go'
+                BranchName: 'main'
+                # OutputArtifactFormat: 'CODEBUILD_CLONE_REF ' #TBD
+              OutputArtifacts:
+                - Name: 'SourceArtifact'
+              Region: 'us-east-1'
+
+        -
+          Name: 'Build'
+          Action:
+            -
+              Name: 'Build'
+              ActionTypeId:
+                Category: 'Build'
+                Owner: 'AWS'
+                Provider: 'CodeBuild'
+                Version: '1'
+              Configuration:
+                ProjectName: !ImportValue AppBuilderName
+              InputArtifacts:
+                - Name: 'SourceArtifact'
+              NameSpace: 'BuildVariables'
+              OutputArtifacts:
+                - Name: 'BuildArtifact'
+              Region: 'us-east-1'
+
+        -
+          Name: 'Deploy'
+          Action:
+            -
+              Name: 'Deploy'
+              ActionTypeId:
+                Category: 'Deploy'
+                Owner: 'AWS'
+                Provider: 'AWS CloudFormation'
+                Version: '1'
+              Configuration:
+                ActionMode: 'CREATE_UPDATE'
+                StackName: !Ref AppName
+                Capabilities: 'CAPABILITY_IAM,CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND'
+                RoleArn: !ImportValue LambdaCloudformationRoleArn
+                TemplatePath: 'BuildArtifact::template.yml'
+                OutputFileName: 'output.yml'
+              InputArtifacts:
+                - Name: 'BuildArtifact
+              
+
+
+      Tags: 
+        - Key: 'organization'
+          Value: 'joseDev'
+        - Key: 'cfn'
+          Value: 'pipeline'

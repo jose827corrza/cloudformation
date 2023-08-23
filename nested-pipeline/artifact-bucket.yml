@@ -1,16 +1,16 @@
 AWSTemplateFormatVersion: 2010-09-09
 
 Parameters:
-  PipelineName:
+  AppName:
     Type: String
 
 Resources:
 
-  PipelineArtifactsBucket:
+  AppArtifactsBucket:
     Type: AWS::S3::Bucket
     Properties:
       # BucketName: baby-pipeline-artifacts-randomname-v2-1236789
-      BucketName: !Join ['-', [ !Ref PipelineName, 'artifacts', !Sub '${AWS::Region}']]
+      BucketName: !Join ['-', [ !Ref AppName, 'artifacts', !Sub '${AWS::Region}']]
       Tags: 
         - Key: 'organization'
           Value: 'joseDev'
@@ -18,11 +18,11 @@ Resources:
           Value: 'pipeline'
 
 Outputs:
-  PipelineArtifactsBucket:
-    Value: !Ref PipelineArtifactsBucket
+  AppArtifactsBucket:
+    Value: !Ref AppArtifactsBucket
     Export:
-      Name: PipelineArtifactsBucket        
-  PipelineArtifactsBucketArn:
-    Value: !GetAtt PipelineArtifactsBucket.Arn
+      Name: AppArtifactsBucket        
+  AppArtifactsBucketArn:
+    Value: !GetAtt AppArtifactsBucket.Arn
     Export:
-      Name: PipelineArtifactsBucketArn       
+      Name: AppArtifactsBucketArn       

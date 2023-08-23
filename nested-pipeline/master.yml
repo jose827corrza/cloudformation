@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Parameters:
-  PipelineName:
+  AppName:
     Description: Name for the new pipeline
     Type: String
 Metadata:
@@ -10,23 +10,47 @@ Metadata:
         Label:
           default: 'Name of the pipeline'
         Parameters:
-          - PipelineName
+          - AppName
     ParameterLabels:
-      PipelineName:
+      AppName:
         default: 'Insert the name for the new Pipeline'
 Resources:
-  PipelineArtifactsBucket:
+  AppArtifactsBucket:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
-        PipelineName: !Ref PipelineName
+        AppName: !Ref AppName
       TemplateURL: https://nested-pipeline.s3.amazonaws.com/templates/artifact-bucket.yml
 
-  PipelineRoleStack:
+  AppRoleStack:
     Type: AWS::CloudFormation::Stack
-    DependsOn: PipelineArtifactsBucket
+    DependsOn: AppArtifactsBucket
     Properties:
       Parameters:
-        PipelineName: !Ref PipelineName
+        AppName: !Ref AppName
       TemplateURL: https://nested-pipeline.s3.amazonaws.com/templates/roles.yml # Required
+  
+  AppPipeline:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: AppRoleStack
+    Properties:
+      Parameters:
+        AppName: !Ref AppName
+      TemplateURL: #TODO
+  
+  AppRepository:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: AppRoleStack
+    Properties:
+      Parameters:
+        AppName: !Ref AppName
+      TemplateURL: #TODO
+
+  AppBuildProject:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: AppRoleStack
+    Properties:
+      Parameters:
+        AppName: !Ref AppName
+      TemplateURL: #TODO
 
