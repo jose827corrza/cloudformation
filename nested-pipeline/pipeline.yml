@@ -22,7 +22,7 @@ Resources:
       Stages: # Required
         -
           Name: 'Source'
-          Action:
+          Actions:
             -
               Name: 'Source'
               ActionTypeId:
@@ -30,7 +30,7 @@ Resources:
                 Owner: 'AWS'
                 Provider: 'CodeCommit'
                 Version: 1
-              NameSpace: 'SourceVariables'
+              Namespace: 'SourceVariables'
               Configuration:
                 RepositoryName: 'lambda-basic-go'
                 BranchName: 'main'
@@ -41,7 +41,7 @@ Resources:
 
         -
           Name: 'Build'
-          Action:
+          Actions:
             -
               Name: 'Build'
               ActionTypeId:
@@ -53,20 +53,20 @@ Resources:
                 ProjectName: !ImportValue AppBuilderName
               InputArtifacts:
                 - Name: 'SourceArtifact'
-              NameSpace: 'BuildVariables'
+              Namespace: 'BuildVariables'
               OutputArtifacts:
                 - Name: 'BuildArtifact'
               Region: 'us-east-1'
 
         -
           Name: 'Deploy'
-          Action:
+          Actions:
             -
               Name: 'Deploy'
               ActionTypeId:
                 Category: 'Deploy'
                 Owner: 'AWS'
-                Provider: 'AWS CloudFormation'
+                Provider: 'CloudFormation'
                 Version: '1'
               Configuration:
                 ActionMode: 'CREATE_UPDATE'

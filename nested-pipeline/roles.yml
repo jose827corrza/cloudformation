@@ -186,8 +186,8 @@ Resources:
                   - s3:GetObjectVersion
                   - s3:GetBucketVersioning
                 Resource:
-                  # - !Sub "arn:aws:s3:::${!ImportValue AppArtifactsBucket}/*" #TODO
-                  - !Join ['',["arn:aws:s3:::", !ImportValue AppArtifactsBucket, "/*"]] #TODO
+                  # - !Sub "arn:aws:s3:::${!ImportValue AppArtifactsBucket}/*" 
+                  - !Join ['',["arn:aws:s3:::", !ImportValue AppArtifactsBucket, "/*"]] 
               - Effect: Allow
                 Action:
                   - codebuild:BatchGetBuilds
