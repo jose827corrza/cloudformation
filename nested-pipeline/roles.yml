@@ -314,7 +314,7 @@ Resources:
               - sts:AssumeRole
       Description: "Role created for the lambda to be deployed"
       Policies: 
-        - PolicyName:
+        - PolicyName: !Sub lambda-${AppName}-policy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:

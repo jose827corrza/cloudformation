@@ -32,11 +32,11 @@ Resources:
   
   AppPipeline:
     Type: AWS::CloudFormation::Stack
-    DependsOn: AppRoleStack
+    DependsOn: AppBuildProject
     Properties:
       Parameters:
         AppName: !Ref AppName
-      TemplateURL: #TODO
+      TemplateURL: https://nested-pipeline.s3.amazonaws.com/templates/pipeline.yml
   
   AppRepository:
     Type: AWS::CloudFormation::Stack
@@ -44,7 +44,7 @@ Resources:
     Properties:
       Parameters:
         AppName: !Ref AppName
-      TemplateURL: #TODO
+      TemplateURL: https://nested-pipeline.s3.amazonaws.com/templates/repository.yml
 
   AppBuildProject:
     Type: AWS::CloudFormation::Stack
@@ -52,5 +52,5 @@ Resources:
     Properties:
       Parameters:
         AppName: !Ref AppName
-      TemplateURL: #TODO
+      TemplateURL: https://nested-pipeline.s3.amazonaws.com/templates/build.yml
 

@@ -14,6 +14,11 @@ Resources:
       Name: !Join ['-',[ !Ref AppName, !Sub '${AWS::Region}']]
       RestartExecutionOnUpdate: false
       RoleArn: !ImportValue AppCodePipelineRoleArn #"String" # Required
+      Tags: 
+        - Key: 'organization'
+          Value: 'joseDev'
+        - Key: 'cfn'
+          Value: 'pipeline'
       Stages: # Required
         -
           Name: 'Source'
@@ -71,12 +76,5 @@ Resources:
                 TemplatePath: 'BuildArtifact::template.yml'
                 OutputFileName: 'output.yml'
               InputArtifacts:
-                - Name: 'BuildArtifact
-              
-
-
-      Tags: 
-        - Key: 'organization'
-          Value: 'joseDev'
-        - Key: 'cfn'
-          Value: 'pipeline'
+                - Name: 'BuildArtifact'
+              Region: 'us-east-1'

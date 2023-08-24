@@ -13,13 +13,10 @@ Resources:
       Description: !Join [' ',["A simple builder for", !Ref AppName]]
       Environment:
         ComputeType: "BUILD_GENERAL1_SMALL"
-
         Image: "aws/codebuild/amazonlinux2-x86_64-standard:5.0"
-
-
-        Type: "LINUX_CONTAINER "
+        Type: "LINUX_CONTAINER"
       Name: !Join ['-', [ !Ref AppName, 'build', !Sub '${AWS::Region}']]
-      ServiceRole: !ImportValue AppCodeBuildRoleArn # Required
+      ServiceRole: !ImportValue AppCodeBuildRoleArn #arn:aws:iam::164190131261:role/test-codebuild #!ImportValue AppCodeBuildRoleArn # Required
       Source:
         BuildSpec: "config/buildspec.yml"
         Type: "CODEPIPELINE"
@@ -32,4 +29,9 @@ Resources:
 Outputs:
   AppBuilderName:
     Value: !Ref AppBuilder
-    Export: AppBuilderName
+    Export: 
+      Name: AppBuilderName
+  AppBuilderArn:
+    Value: !GetAtt AppBuilder.Arn
+    Export: 
+      Name: AppBuilderArn

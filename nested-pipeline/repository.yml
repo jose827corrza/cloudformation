@@ -17,10 +17,6 @@ Resources:
           Value: 'pipeline'
 
 Outputs:
-  AppRepo:
-    Value: !GetAtt AppRepository
-    Export:
-      Name: AppRepo
   AppRepoName:
     Value: !GetAtt AppRepository.Name
     Export:
