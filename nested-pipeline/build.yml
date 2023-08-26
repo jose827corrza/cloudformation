@@ -10,6 +10,7 @@ Resources:
     Properties:
       Artifacts:
         Type: "CODEPIPELINE"
+        OverrideArtifactName: true
       Description: !Join [' ',["A simple builder for", !Ref AppName]]
       Environment:
         ComputeType: "BUILD_GENERAL1_SMALL"

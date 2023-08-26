@@ -227,6 +227,11 @@ Resources:
                 Action: 
                   - codedeploy:*
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - codecommit:Get*
+                  - codecommit:Upload*
+                Resource: '*'
 
   LambdaCloudformationRole:
     Type: AWS::IAM::Role
